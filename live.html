@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Live-Ergebnis</title>
+<link rel="stylesheet" href="stil.css">
+<style>
+  html, body { height: 100%; overflow: hidden; }
+  html.einbetten { color-scheme: normal; background: transparent; } /* sonst malt Chrome einen dunklen Kasten hinter das iframe */
+  body.einbetten { background: transparent !important; background-image: none !important; }
+  #buehne { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center center; }
+  .abs { position: absolute; }
+
+  #logo { left: 110px; top: 64px; height: 46px; }
+  #frage { left: 110px; top: 150px; width: 1180px; font-size: 64px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; text-shadow: 0 0 20px rgba(201,166,232,.35); }
+  #ergebnis { left: 110px; top: 400px; width: 1180px; height: 560px; }
+  #status { left: 110px; top: 990px; display: flex; gap: 14px; align-items: center; font-size: 20px; color: var(--lav-300); letter-spacing: .06em; }
+  #status .badge { font-size: 17px; }
+
+  #seite { left: 1380px; top: 110px; width: 430px; height: 860px; padding: 34px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  #qr { width: 340px; height: 340px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 40px rgba(225,75,232,.45); background: #fff; cursor: zoom-in; }
+  #qr svg { width: 100%; height: 100%; display: block; }
+  .scan { margin-top: 26px; font-size: 22px; font-weight: 600; }
+  .oder { margin-top: 18px; font-size: 17px; color: var(--lav-300); letter-spacing: .12em; text-transform: uppercase; }
+  .adresse { margin-top: 6px; font-size: 22px; font-weight: 600; color: var(--lilac-300); overflow-wrap: anywhere; line-height: 1.3; }
+  .codegross { margin-top: 10px; font-size: 54px; font-weight: 800; letter-spacing: .18em; }
+  .codegross small { display: block; font-size: 16px; font-weight: 400; letter-spacing: .16em; color: var(--lav-300); text-transform: uppercase; }
+  #zirkel { margin-top: auto; width: 170px; height: 170px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(167,6,173,.45); border: 3px solid var(--magenta-400); box-shadow: 0 0 34px rgba(225,75,232,.55); }
+  #zirkel b { font-size: 62px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  #zirkel i { font-style: normal; font-size: 16px; font-weight: 300; letter-spacing: .16em; text-transform: uppercase; margin-top: 4px; color: var(--lav-200); }
+  #zirkel.puls { animation: puls .6s ease; }
+  @keyframes puls { 40% { transform: scale(1.08); box-shadow: 0 0 60px rgba(225,75,232,.9); } }
+
+  /* ohne QR-Spalte: volle Breite */
+  .ohneqr #frage { width: 1700px; }
+  .ohneqr #ergebnis { width: 1700px; }
+  .ohneqr #seite { display: none; }
+  .ohneqr #zaehlerklein { display: flex; }
+  #zaehlerklein { display: none; right: 110px; top: 990px; gap: 10px; align-items: baseline; font-size: 20px; color: var(--lav-300); letter-spacing: .12em; text-transform: uppercase; }
+  #zaehlerklein b { font-size: 34px; color: var(--lav-50); letter-spacing: 0; }
+
+  /* Kacheln */
+  .kachel { position: absolute; background: var(--glass); border: 1.5px solid var(--glass-border); border-radius: 10px; padding: 22px 26px; overflow: hidden;
+    transition: opacity .6s ease, transform .6s ease, background .6s, border-color .6s, box-shadow .6s; }
+  .kachel .l { font-size: 22px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--lav-300); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .kachel .p { margin-top: 10px; font-weight: 700; line-height: 1; text-shadow: 0 0 20px rgba(167,6,173,.4); font-variant-numeric: tabular-nums; }
+  .kachel .p small { font-size: .48em; font-weight: 300; }
+  .kachel .n { position: absolute; right: 26px; bottom: 42px; font-size: 18px; color: var(--lav-400); font-variant-numeric: tabular-nums; }
+  .kachel .bar { position: absolute; left: 26px; right: 26px; bottom: 22px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.18); }
+  .kachel .bar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--lilac-300); transition: width 1.2s cubic-bezier(.2,.7,.2,1); }
+  .kachel.sieger { background: rgba(167,6,173,.5); border-color: var(--magenta-400); box-shadow: 0 0 36px rgba(225,75,232,.5); }
+  .kachel.sieger .bar i { background: #fff; }
+  .fokus .kachel { opacity: .4; }
+  .fokus .kachel.sieger { opacity: 1; transform: scale(1.04); }
+
+  /* Skala */
+  .skala { position: absolute; inset: 0; display: flex; gap: 60px; align-items: stretch; }
+  .schnitt { width: 330px; flex: none; display: flex; flex-direction: column; justify-content: center; }
+  .schnitt b { font-size: 190px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 0 22px rgba(167,6,173,.55); }
+  .schnitt span { font-size: 22px; font-weight: 300; letter-spacing: .18em; text-transform: uppercase; color: var(--lav-150); margin-top: 8px; }
+  .saeulen { flex: 1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 14px; padding-bottom: 44px; position: relative; }
+  .saeule { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .saeule .w { font-size: 22px; font-weight: 600; color: var(--lav-200); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .saeule .s { width: 100%; height: 0; min-height: 4px; border-radius: 8px 8px 3px 3px; background: linear-gradient(to top, rgba(167,6,173,.7), var(--lilac-300)); border: 1.5px solid rgba(255,255,255,.35); transition: height 1.2s cubic-bezier(.2,.7,.2,1); }
+  .saeule.top .s { background: linear-gradient(to top, var(--magenta-600), var(--magenta-400)); box-shadow: 0 0 26px rgba(225,75,232,.6); }
+  .saeule .z { margin-top: 10px; font-size: 26px; font-weight: 700; line-height: 1; }
+  .enden { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; font-size: 19px; color: var(--lav-300); letter-spacing: .06em; }
+
+  /* Wortwolke */
+  .wolke { position: absolute; inset: 0; }
+  .wort { position: absolute; white-space: nowrap; font-weight: 700; line-height: 1; transform: translate(-50%, -50%); transition: left .8s ease, top .8s ease, font-size .8s ease, opacity .6s; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+  .wort:hover { background: rgba(255,255,255,.08); }
+  .einbetten .wort { cursor: default; }
+
+  /* Platzhalter, verdeckt, Fehler */
+  .leer { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; border: 2px dashed rgba(255,255,255,.22); border-radius: 14px; }
+  .leer b { font-size: 46px; font-weight: 700; }
+  .leer span { font-size: 24px; color: var(--lav-300); }
+  .leer .meldung { font-size: 22px; max-width: 900px; }
+
+  /* QR groß */
+  #qrgross { position: absolute; inset: 0; background: rgba(5,13,28,.92); display: flex; align-items: center; justify-content: center; gap: 90px; z-index: 20; cursor: zoom-out; }
+  .einbetten #qrgross { background: rgba(5,13,28,.96); border-radius: 18px; }
+  #qrgross .q { width: 700px; height: 700px; border-radius: 16px; overflow: hidden; box-shadow: 0 0 70px rgba(225,75,232,.55); }
+  #qrgross .q svg { width: 100%; height: 100%; display: block; }
+  #qrgross .t { max-width: 760px; }
+  #qrgross h2 { font-size: 60px; font-weight: 700; line-height: 1.15; }
+  #qrgross p { margin-top: 34px; font-size: 26px; color: var(--lav-300); letter-spacing: .1em; text-transform: uppercase; }
+  #qrgross .adresse { font-size: 36px; margin-top: 8px; }
+  #qrgross .codegross { font-size: 96px; margin-top: 18px; text-align: left; }
+
+  /* Steuerleiste (nur bei Mausbewegung sichtbar) */
+  #steuer { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 32px); padding: 8px; border-radius: 12px; background: rgba(5,13,28,.85); border: 1px solid var(--glass-border); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .3s; }
+  #steuer.zeigen { opacity: 1; pointer-events: auto; }
+  #steuer .knopf { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+  #steuer kbd { font-family: inherit; font-size: 11px; opacity: .7; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; }
+  #toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 60; max-width: calc(100vw - 32px); }
+</style>
+</head>
+<body>
+<div id="buehne">
+  <img id="logo" class="abs logo" src="lib/logo.png" alt="AI & Beyond">
+  <div id="frage" class="abs">Umfrage wird geladen …</div>
+  <div id="ergebnis" class="abs"></div>
+  <div id="status" class="abs"></div>
+  <div id="zaehlerklein" class="abs"><b id="nklein">0</b> Antworten</div>
+  <aside id="seite" class="abs glas">
+    <div id="qr" title="QR-Code groß zeigen (Q)"></div>
+    <div class="scan">Mit dem Handy scannen</div>
+    <div class="oder">oder öffne</div>
+    <div class="adresse" id="adresse"></div>
+    <div class="codegross"><small>Code</small><span id="codeanz">----</span></div>
+    <div id="zirkel"><b id="n">0</b><i>Antworten</i></div>
+  </aside>
+  <div id="qrgross" class="versteckt" title="Schließen (Q)">
+    <div class="q" id="qr2"></div>
+    <div class="t"><h2 id="frage2"></h2><p>Scanne den Code oder öffne</p><div class="adresse" id="adresse2"></div><div class="codegross"><small>Code</small><span id="codeanz2"></span></div></div>
+  </div>
+</div>
+<div id="steuer" role="toolbar" aria-label="Steuerung">
+  <button class="knopf zweit" data-a="e">Ergebnis zeigen/verbergen <kbd>E</kbd></button>
+  <button class="knopf zweit" data-a="s" id="kS">Schließen <kbd>S</kbd></button>
+  <button class="knopf zweit" data-a="r">Neue Runde <kbd>R</kbd></button>
+  <button class="knopf zweit" data-a="q">QR groß <kbd>Q</kbd></button>
+  <button class="knopf zweit" data-a="f">Vollbild <kbd>F</kbd></button>
+</div>
+<div id="toast"></div>
+
+<script src="einstellungen.js"></script>
+<script src="lib/qrcode.js"></script>
+<script src="gemeinsam.js"></script>
+<script>
+(function () {
+  'use strict';
+  const U = window.Umfrage, el = U.el, $ = (id) => document.getElementById(id);
+  const code = (U.param('c') || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const einbetten = U.param('einbetten') === '1';
+  const ohneQr = U.param('qr') === '0';
+  const reduziert = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let verdeckt = U.param('verdeckt') === '1';
+  let daten = null, letzteSig = '', letzteAnzahl = -1, fehlerZaehler = 0;
+
+  if (einbetten) { document.documentElement.classList.add('einbetten'); document.body.classList.add('einbetten'); $('logo').classList.add('versteckt'); }
+  if (ohneQr) document.body.classList.add('ohneqr');
+
+  /* Bühne skalieren (1920x1080 auf jede Fenstergröße) */
+  const buehne = $('buehne');
+  const skal = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); buehne.style.transform = 'translate(-50%,-50%) scale(' + s + ')'; };
+  addEventListener('resize', skal); skal();
+
+  /* Meldungen */
+  let toastT;
+  function toast(text, art) { const t = $('toast'); t.textContent = ''; t.append(el('div', 'meldung ' + (art || 'info'), text)); clearTimeout(toastT); toastT = setTimeout(() => { t.textContent = ''; }, 3500); }
+
+  /* Zahlen weich hochzählen */
+  const tw = {};
+  function zaehle(node, ziel, nachkomma) {
+    const key = node.id || node.dataset.k || (node.dataset.k = Math.random().toString(36).slice(2));
+    const von = parseFloat(String(node.dataset.v || '0')), tok = (tw[key] = (tw[key] || 0) + 1), t0 = performance.now(), dauer = reduziert ? 1 : 1100;
+    const fmt = (v) => nachkomma ? v.toFixed(1).replace('.', ',') : String(Math.round(v));
+    node.dataset.v = ziel;
+    const f = (t) => { if (tw[key] !== tok) return; const k = Math.min(1, (t - t0) / dauer), e = 1 - Math.pow(1 - k, 3); node.textContent = fmt(von + (ziel - von) * e); if (k < 1) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  }
+
+  /* Kopf: Frage, QR, Adresse */
+  function kopf(d) {
+    $('frage').textContent = d.frage; $('frage2').textContent = d.frage;
+    // Frage verkleinern, wenn sie zu lang ist
+    let fs = 64; $('frage').style.fontSize = fs + 'px';
+    while ($('frage').scrollHeight > 230 && fs > 34) { fs -= 4; $('frage').style.fontSize = fs + 'px'; }
+    const top = Math.min(420, Math.max(320, 150 + $('frage').scrollHeight + 70));
+    bereich.style.top = top + 'px'; bereich.style.height = (960 - top) + 'px'; bereich.textContent = '';
+    const url = U.abstimmUrl(d.code), svg = U.qrSvg(url);
+    $('qr').innerHTML = svg; $('qr2').innerHTML = svg;
+    $('adresse').textContent = U.kurzAdresse(); $('adresse2').textContent = U.kurzAdresse();
+    $('codeanz').textContent = d.code; $('codeanz2').textContent = d.code;
+    document.title = 'Live: ' + d.frage;
+  }
+
+  function status(d) {
+    const s = $('status'); s.textContent = '';
+    s.append(el('span', 'badge ' + (d.offen ? 'offen' : 'zu'), d.offen ? 'Abstimmung läuft' : 'Abstimmung geschlossen'));
+    if (d.typ === 'mehrfach') s.append(el('span', '', 'Mehrfachnennung möglich'));
+    if (U.demo) s.append(el('span', 'badge demo', 'Demo-Modus'));
+    $('kS').firstChild.textContent = d.offen ? 'Schließen ' : 'Öffnen ';
+  }
+
+  /* Ergebnis zeichnen */
+  const bereich = $('ergebnis');
+  function leer(titel, text, fehler) {
+    bereich.textContent = ''; const l = el('div', 'leer');
+    if (fehler) l.append(el('div', 'meldung fehler', fehler)); else { l.append(el('b', '', titel)); if (text) l.append(el('span', '', text)); }
+    bereich.append(l);
+  }
+
+  function kacheln(d) {
+    const n = d.optionen.length, W = bereich.clientWidth || 1180, H = bereich.clientHeight || 560, gap = 24;
+    const c = W > 1300 ? (n <= 4 ? n : 4) : (n <= 3 ? n : n === 4 ? 2 : n <= 9 ? 3 : 4);
+    const rows = Math.ceil(n / c), w = (W - gap * (c - 1)) / c, h = Math.min(220, (H - gap * (rows - 1)) / rows);
+    let box = bereich.querySelector('.kacheln');
+    if (!box || box.dataset.n !== String(n) + '/' + c) {
+      bereich.textContent = ''; box = el('div', 'kacheln'); box.dataset.n = String(n) + '/' + c; box.style.cssText = 'position:absolute;inset:0';
+      d.optionen.forEach((o, i) => {
+        const k = el('div', 'kachel'); k.style.left = (i % c) * (w + gap) + 'px'; k.style.top = Math.floor(i / c) * (h + gap) + 'px'; k.style.width = w + 'px'; k.style.height = h + 'px';
+        const p = el('div', 'p'); const pz = el('span', '', '0'); pz.dataset.k = 'p' + i; p.append(pz, el('small', '', ' %')); p.style.fontSize = Math.max(34, Math.min(84, h * 0.4)) + 'px';
+        const nz = el('div', 'n', ''); const bar = el('div', 'bar'); bar.append(el('i'));
+        k.append(el('div', 'l', o), p, nz, bar); box.append(k);
+      });
+      bereich.append(box);
+    }
+    const werte = d.optionen.map((_, i) => Number(d.werte[i] || d.werte[String(i)] || 0));
+    const max = Math.max(0, ...werte);
+    box.classList.toggle('fokus', !d.offen && max > 0);
+    [...box.children].forEach((k, i) => {
+      const v = werte[i], pct = d.anzahl ? (v / d.anzahl) * 100 : 0;
+      zaehle(k.querySelector('.p span'), Math.round(pct));
+      k.querySelector('.n').textContent = v === 1 ? '1 Stimme' : v + ' Stimmen';
+      k.querySelector('.bar i').style.width = Math.min(100, pct) + '%';
+      k.classList.toggle('sieger', max > 0 && v === max);
+    });
+  }
+
+  function skala(d) {
+    let box = bereich.querySelector('.skala');
+    if (!box) {
+      bereich.textContent = ''; box = el('div', 'skala');
+      const s = el('div', 'schnitt'); const b = el('b', '', '–'); b.id = 'schnitt'; s.append(b, el('span', '', 'Durchschnitt'));
+      const g = el('div', 'saeulen');
+      for (let k = 1; k <= 10; k++) { const c = el('div', 'saeule'); c.append(el('div', 'w', '0'), el('div', 's'), el('div', 'z', String(k))); g.append(c); }
+      const e = el('div', 'enden'); e.append(el('span', '', '1 = ' + (d.optionen[0] || '')), el('span', '', '10 = ' + (d.optionen[1] || '')));
+      g.append(e); box.append(s, g); bereich.append(box);
+    }
+    const werte = Array.from({ length: 10 }, (_, i) => Number(d.werte[i + 1] || d.werte[String(i + 1)] || 0));
+    const sum = werte.reduce((a, b) => a + b, 0), max = Math.max(1, ...werte);
+    const avg = sum ? werte.reduce((a, v, i) => a + v * (i + 1), 0) / sum : 0;
+    const sb = $('schnitt'); if (sum) zaehle(sb, Math.round(avg * 10) / 10, true); else { sb.textContent = '–'; sb.dataset.v = 0; }
+    const hmax = Math.max(60, box.querySelector('.saeulen').clientHeight - 44 - 36 - 40);
+    box.querySelectorAll('.saeule').forEach((c, i) => {
+      c.querySelector('.w').textContent = String(werte[i]);
+      c.querySelector('.s').style.height = (werte[i] / max) * hmax + 'px';
+      c.classList.toggle('top', werte[i] === max && werte[i] > 0);
+    });
+  }
+
+  const FARBEN = ['#FFFFFF', '#D6B8F0', '#E14BE8', '#F4F1FA', '#CFC6E3', '#FF6BEB'];
+  function wolke(d) {
+    let box = bereich.querySelector('.wolke');
+    if (!box) { bereich.textContent = ''; box = el('div', 'wolke'); bereich.append(box); }
+    const W = bereich.clientWidth || 1180, H = bereich.clientHeight || 560;
+    if (!d.werte.length) { box.textContent = ''; return leer('Noch keine Begriffe', 'Die ersten Antworten erscheinen hier live.'); }
+    const max = d.werte[0].anzahl, min = d.werte[d.werte.length - 1].anzahl;
+    const vorhanden = new Map([...box.children].map((n) => [n.dataset.w, n]));
+    const plaetze = [];
+    const messer = el('span'); messer.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-weight:700;line-height:1;padding:4px 6px;left:0;top:0'; box.append(messer);
+    const neu = new Set();
+    d.werte.forEach((o, i) => {
+      const t = max === min ? 1 : (o.anzahl - min) / (max - min);
+      let fs = Math.round(30 + t * 82); if (d.werte.length > 30) fs = Math.round(fs * .8);
+      messer.style.fontSize = fs + 'px'; messer.textContent = o.wort;
+      const bw = messer.offsetWidth + 8, bh = messer.offsetHeight + 4;
+      // Spirale vom Mittelpunkt
+      let x = W / 2, y = H / 2, ok = false;
+      for (let a = 0; a < 400 && !ok; a += 0.08) {
+        const r = 3 * a;
+        x = W / 2 + r * Math.cos(a) * 1.8; y = H / 2 + r * Math.sin(a);
+        if (x - bw / 2 < 0 || x + bw / 2 > W || y - bh / 2 < 0 || y + bh / 2 > H) continue;
+        ok = !plaetze.some((p) => Math.abs(p.x - x) < (p.w + bw) / 2 && Math.abs(p.y - y) < (p.h + bh) / 2);
+      }
+      if (!ok) return;
+      plaetze.push({ x, y, w: bw, h: bh });
+      const key = o.wort.toLowerCase(); neu.add(key);
+      let n = vorhanden.get(key);
+      if (!n) {
+        n = el('span', 'wort', o.wort); n.dataset.w = key; n.style.left = W / 2 + 'px'; n.style.top = H / 2 + 'px'; n.style.fontSize = '10px'; n.style.opacity = '0';
+        n.title = einbetten ? '' : 'Klicken zum Ausblenden';
+        n.onclick = () => { if (einbetten) return; if (confirm('Begriff „' + o.wort + '“ ausblenden?')) steuern('ausblenden', key); };
+        box.append(n); n.getBoundingClientRect();
+      }
+      n.textContent = o.wort; n.style.color = i === 0 ? '#FF00D4' : FARBEN[i % FARBEN.length];
+      n.style.textShadow = i < 3 ? '0 0 24px rgba(225,75,232,.6)' : 'none';
+      n.style.left = x + 'px'; n.style.top = y + 'px'; n.style.fontSize = fs + 'px'; n.style.opacity = '1';
+    });
+    messer.remove();
+    vorhanden.forEach((n, k) => { if (!neu.has(k)) n.remove(); });
+    const l = bereich.querySelector('.leer'); if (l) l.remove();
+  }
+
+  function zeichnen() {
+    const d = daten; if (!d) return;
+    const n = d.anzahl;
+    zaehle($('n'), n); zaehle($('nklein'), n);
+    if (letzteAnzahl >= 0 && n > letzteAnzahl && !reduziert) { const z = $('zirkel'); z.classList.remove('puls'); void z.offsetWidth; z.classList.add('puls'); }
+    letzteAnzahl = n;
+    if (verdeckt) { bereich.querySelector('.leer') || leer('Ergebnis folgt …', 'Stimm jetzt ab. Das Ergebnis wird gleich aufgedeckt.'); return; }
+    if (n === 0 && d.typ !== 'wolke') { leer('Noch keine Antworten', 'Scanne den QR-Code und stimm als Erste:r ab.'); return; }
+    const l = bereich.querySelector('.leer'); if (l) bereich.textContent = '';
+    if (d.typ === 'skala') skala(d); else if (d.typ === 'wolke') wolke(d); else kacheln(d);
+  }
+
+  /* Live-Abfrage alle 2 Sekunden */
+  async function abfrage() {
+    try {
+      const d = await U.api.ergebnis(code);
+      fehlerZaehler = 0;
+      const sig = JSON.stringify(d);
+      if (sig !== letzteSig) {
+        const neuKopf = !daten || daten.frage !== d.frage || daten.code !== d.code;
+        const neueRunde = daten && daten.runde !== d.runde;
+        letzteSig = sig; daten = d;
+        if (neuKopf) kopf(d);
+        if (neueRunde) { bereich.textContent = ''; letzteAnzahl = -1; }
+        status(d); zeichnen();
+      }
+    } catch (e) {
+      console.error(e);
+      fehlerZaehler++;
+      if (!daten || /nicht gefunden/i.test(e.message)) leer('', '', e.message);
+      else if (fehlerZaehler === 3) toast('Verbindung wackelt: ' + e.message, 'fehler');
+    }
+    setTimeout(abfrage, document.hidden ? 6000 : 2000);
+  }
+
+  /* Steuerung */
+  async function steuern(aktion, wert) {
+    try { await U.api.steuern(code, aktion, wert); letzteSig = ''; const d = await U.api.ergebnis(code); const neueRunde = daten && d.runde !== daten.runde; daten = d; letzteSig = JSON.stringify(d); if (neueRunde) { bereich.textContent = ''; letzteAnzahl = -1; } status(d); zeichnen(); }
+    catch (e) { toast(/Zugriff/.test(e.message) ? 'Steuern geht nur auf dem Gerät, auf dem du die Umfrage angelegt hast (oder mit deinem Moderations-Schlüssel).' : e.message, 'fehler'); }
+  }
+  const qrUmschalten = () => $('qrgross').classList.toggle('versteckt');
+  function aktion(a) {
+    if (!daten && a !== 'f') return;
+    if (a === 'e') { verdeckt = !verdeckt; bereich.textContent = ''; zeichnen(); toast(verdeckt ? 'Ergebnis verborgen' : 'Ergebnis sichtbar'); }
+    else if (a === 's') steuern(daten.offen ? 'schliessen' : 'oeffnen');
+    else if (a === 'r') { if (confirm('Neue Runde starten? Alle bisherigen Antworten dieser Umfrage werden gelöscht.')) steuern('neue_runde'); }
+    else if (a === 'q') qrUmschalten();
+    else if (a === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); }
+  }
+  $('qr').onclick = qrUmschalten; $('qrgross').onclick = qrUmschalten;
+  $('steuer').addEventListener('click', (e) => { const b = e.target.closest('[data-a]'); if (b) aktion(b.dataset.a); });
+  addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (['e', 's', 'r', 'q', 'f'].includes(k)) { e.preventDefault(); aktion(k); return; }
+    if (!einbetten && k === ' ') { e.preventDefault(); aktion('e'); return; }
+    if (k === 'escape' && !$('qrgross').classList.contains('versteckt')) { qrUmschalten(); return; }
+    // eingebettet: andere Tasten (Pfeile, Leertaste, Bild-Tasten) an die Folie weiterreichen
+    if (einbetten && window.parent !== window) { e.preventDefault(); window.parent.postMessage({ umfrageTaste: e.key, code: e.code }, '*'); }
+  });
+  let mausT;
+  addEventListener('mousemove', () => { $('steuer').classList.add('zeigen'); clearTimeout(mausT); mausT = setTimeout(() => $('steuer').classList.remove('zeigen'), 2500); });
+
+  if (U.param('start') === 'qr') $('qrgross').classList.remove('versteckt');
+  if (U.fehlerText) leer('', '', U.fehlerText);
+  else if (!code) leer('', '', 'Kein Umfrage-Code in der Adresse. Öffne die Live-Ansicht über die Zentrale.');
+  else abfrage();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Umfrage-Zentrale</title>
+<link rel="stylesheet" href="stil.css">
+<style>
+  .rahmen { max-width: 1040px; margin: 0 auto; padding: 28px 16px 60px; display: flex; flex-direction: column; gap: 26px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header .links { display: flex; align-items: center; gap: 18px; }
+  h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 700; }
+  h2 { font-size: 22px; font-weight: 700; margin-bottom: 18px; }
+  .karte { padding: 26px; }
+  .zeile { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; }
+  .typen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 720px) { .typen { grid-template-columns: repeat(2, 1fr); } }
+  .typ { text-align: left; padding: 14px; border-radius: 10px; border: 1.5px solid var(--glass-border); background: rgba(5,13,28,.4); min-height: 86px; }
+  .typ b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .typ span { font-size: 13px; color: var(--lav-300); line-height: 1.35; }
+  .typ[aria-pressed="true"] { border-color: var(--magenta-400); background: rgba(167,6,173,.4); box-shadow: 0 0 18px rgba(225,75,232,.35); }
+  .optionen { display: flex; flex-direction: column; gap: 10px; }
+  .option { display: flex; gap: 10px; align-items: center; }
+  .option .nr { width: 26px; flex: none; text-align: right; color: var(--lav-400); font-weight: 600; }
+  .weg { flex: none; width: 44px; height: 48px; border-radius: 10px; border: 1.5px solid var(--glass-border); background: transparent; font-size: 22px; line-height: 1; color: var(--lav-300); }
+  .weg:hover { border-color: var(--warn); color: var(--warn); }
+  .zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .zwei { grid-template-columns: 1fr; } }
+  .liste { display: flex; flex-direction: column; gap: 14px; }
+  .eintrag { padding: 18px 20px; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: center; }
+  .eintrag .code { grid-row: span 2; font-size: 30px; font-weight: 800; letter-spacing: .14em; color: var(--lilac-300); }
+  .eintrag .f { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+  .eintrag .meta { font-size: 14px; color: var(--lav-300); display: flex; gap: 12px; flex-wrap: wrap; }
+  .eintrag .knoepfe { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .punkt { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .schnipsel { width: 100%; min-height: 130px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; resize: vertical; }
+  details summary { cursor: pointer; font-weight: 700; font-size: 18px; }
+  details[open] summary { margin-bottom: 14px; }
+  .modzeile { display: flex; gap: 10px; flex-wrap: wrap; }
+  .modzeile .feld { flex: 1; min-width: 220px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  ol.schritte { padding-left: 22px; line-height: 1.7; color: var(--lav-150); }
+</style>
+</head>
+<body>
+<div class="rahmen">
+  <header>
+    <div class="links"><img class="logo" src="lib/logo.png" alt="AI & Beyond"><h1>Umfrage-<em>Zentrale</em></h1></div>
+    <span class="badge" id="verbindung"></span>
+  </header>
+  <div id="hinweisbox"></div>
+
+  <section class="glas karte" aria-labelledby="h-neu">
+    <h2 id="h-neu">Neue Umfrage</h2>
+    <form id="formular" novalidate>
+      <div class="zeile"><label class="etikett" for="frage">Frage</label><input class="feld" id="frage" maxlength="300" placeholder="z. B. Wofür nutzt du KI am meisten?" required></div>
+      <div class="zeile"><span class="etikett">Fragetyp</span>
+        <div class="typen" role="radiogroup" aria-label="Fragetyp">
+          <button type="button" class="typ" data-typ="einfach" aria-pressed="true"><b>Einfachauswahl</b><span>Eine Antwort pro Person</span></button>
+          <button type="button" class="typ" data-typ="mehrfach" aria-pressed="false"><b>Mehrfachauswahl</b><span>Mehrere Antworten möglich</span></button>
+          <button type="button" class="typ" data-typ="skala" aria-pressed="false"><b>Skala 1-10</b><span>Durchschnitt und Verteilung</span></button>
+          <button type="button" class="typ" data-typ="wolke" aria-pressed="false"><b>Wortwolke</b><span>Bis 3 freie Begriffe pro Person</span></button>
+        </div>
+      </div>
+      <div class="zeile" id="block-optionen"><span class="etikett">Antworten (2 bis 12)</span>
+        <div class="optionen" id="optionen"></div>
+        <div style="margin-top:10px"><button type="button" class="knopf zweit klein" id="plus">+ Antwort hinzufügen</button></div>
+      </div>
+      <div class="zeile versteckt" id="block-skala"><span class="etikett">Beschriftung der Enden</span>
+        <div class="zwei"><input class="feld" id="s1" maxlength="80" placeholder="1 = z. B. gar nicht" value="gar nicht"><input class="feld" id="s10" maxlength="80" placeholder="10 = z. B. voll und ganz" value="voll und ganz"></div>
+      </div>
+      <div class="zeile versteckt" id="block-wolke"><p class="hinweis">Teilnehmende tippen bis zu 3 Begriffe. Häufige Begriffe erscheinen größer. Grobe Schimpfwörter werden automatisch gefiltert, einzelne Begriffe kannst du auf der Live-Seite per Klick ausblenden.</p></div>
+      <div id="formfehler"></div>
+      <button class="knopf" type="submit" id="anlegen">Umfrage anlegen</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="h-liste">
+    <h2 id="h-liste">Deine Umfragen</h2>
+    <div class="liste" id="liste"><p class="hinweis">Wird geladen …</p></div>
+  </section>
+
+  <section class="glas karte versteckt" id="einbettbox" aria-labelledby="h-einbett">
+    <h2 id="h-einbett">Einbett-Code für deine HTML-Folie</h2>
+    <p class="hinweis" style="margin-bottom:12px">Kopieren und in deine Folie einfügen (in den &lt;section&gt;-Block der Folie). Die Umfrage füllt die ganze Folie, mit Frage, QR-Code und Live-Ergebnis. Soll sie kleiner sein: <b>left, top, width, height</b> anpassen. Die zweite Zeile sorgt dafür, dass deine Pfeiltasten weiter die Folien umblättern, auch wenn du vorher ins Ergebnis geklickt hast.</p>
+    <div class="zeile"><span class="etikett">Variante</span>
+      <div class="modzeile">
+        <label class="hinweis"><input type="radio" name="var" value="mit" checked> mit QR-Code</label>
+        <label class="hinweis"><input type="radio" name="var" value="ohne"> ohne QR-Code (nur Ergebnis)</label>
+        <label class="hinweis"><input type="checkbox" id="verd"> Ergebnis anfangs verdeckt</label>
+      </div>
+    </div>
+    <textarea class="feld schnipsel" id="schnipsel" readonly aria-label="Einbett-Code"></textarea>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="knopf" type="button" id="kopieren">Code kopieren</button><button class="knopf zweit" type="button" id="einbettzu">Schließen</button></div>
+  </section>
+
+  <section class="glas karte">
+    <details>
+      <summary>Moderations-Schlüssel (für ein zweites Gerät)</summary>
+      <p class="hinweis" style="margin-bottom:14px">Nur wer diesen Schlüssel hat, kann deine Umfragen schließen, zurücksetzen oder löschen. Er liegt in diesem Browser. Willst du am Laptop vorbereiten und am PC präsentieren: Schlüssel hier kopieren und auf dem anderen Gerät unten einfügen. Behandle ihn wie ein Passwort.</p>
+      <div class="modzeile" style="margin-bottom:12px"><input class="feld" id="modanz" readonly aria-label="Dein Moderations-Schlüssel"><button class="knopf zweit" type="button" id="modkopie">Kopieren</button></div>
+      <div class="modzeile"><input class="feld" id="modneu" placeholder="Schlüssel vom anderen Gerät einfügen" aria-label="Schlüssel einfügen"><button class="knopf zweit" type="button" id="modsetzen">Übernehmen</button></div>
+      <div id="modmeldung" style="margin-top:10px"></div>
+    </details>
+  </section>
+</div>
+
+<script src="einstellungen.js"></script>
+<script src="lib/qrcode.js"></script>
+<script src="gemeinsam.js"></script>
+<script>
+(function () {
+  'use strict';
+  const U = window.Umfrage, el = U.el, $ = (id) => document.getElementById(id);
+  let typ = 'einfach';
+
+  /* Verbindungsstatus */
+  const vb = $('verbindung');
+  if (U.fehlerText) { vb.textContent = 'Einstellungen prüfen'; vb.className = 'badge zu'; $('hinweisbox').append(el('div', 'meldung fehler', U.fehlerText)); }
+  else if (U.demo) {
+    vb.textContent = 'Demo-Modus'; vb.className = 'badge demo';
+    const m = el('div', 'meldung info');
+    m.append(el('b', '', 'Demo-Modus: '), document.createTextNode('Alles läuft nur in diesem Browser. Zum Testen: Live-Ansicht öffnen und in einem zweiten Tab die Abstimmseite. Für echte Meetings trägst du in einstellungen.js deine Supabase-Werte ein (siehe LIESMICH.md).'));
+    $('hinweisbox').append(m);
+  } else { vb.textContent = 'Mit Supabase verbunden'; vb.className = 'badge offen'; }
+
+  /* Fragetyp wählen */
+  document.querySelectorAll('.typ').forEach((b) => b.addEventListener('click', () => {
+    typ = b.dataset.typ;
+    document.querySelectorAll('.typ').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    $('block-optionen').classList.toggle('versteckt', !(typ === 'einfach' || typ === 'mehrfach'));
+    $('block-skala').classList.toggle('versteckt', typ !== 'skala');
+    $('block-wolke').classList.toggle('versteckt', typ !== 'wolke');
+  }));
+
+  /* Antwort-Felder */
+  const opt = $('optionen');
+  function nummern() { [...opt.children].forEach((z, i) => { z.querySelector('.nr').textContent = (i + 1) + '.'; z.querySelector('.weg').disabled = opt.children.length <= 2; }); $('plus').disabled = opt.children.length >= 12; }
+  function neueOption(wert) {
+    const z = el('div', 'option'); const i = el('input', 'feld'); i.maxLength = 80; i.value = wert || ''; i.placeholder = 'Antwort'; i.setAttribute('aria-label', 'Antwort');
+    const w = el('button', 'weg', '×'); w.type = 'button'; w.setAttribute('aria-label', 'Antwort entfernen'); w.onclick = () => { z.remove(); nummern(); };
+    i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (opt.children.length < 12 && z === opt.lastElementChild) { neueOption(); nummern(); opt.lastElementChild.querySelector('input').focus(); } } });
+    z.append(el('span', 'nr'), i, w); opt.append(z); return i;
+  }
+  ['', '', ''].forEach((v) => neueOption(v)); nummern();
+  $('plus').onclick = () => { neueOption().focus(); nummern(); };
+
+  /* Anlegen */
+  $('formular').addEventListener('submit', async (e) => {
+    e.preventDefault(); const ff = $('formfehler'); ff.textContent = '';
+    const frage = $('frage').value.trim();
+    let optionen = [];
+    if (typ === 'einfach' || typ === 'mehrfach') optionen = [...opt.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean);
+    if (typ === 'skala') optionen = [$('s1').value.trim(), $('s10').value.trim()];
+    const fehler = !frage ? 'Bitte eine Frage eingeben.' : (typ === 'einfach' || typ === 'mehrfach') && optionen.length < 2 ? 'Bitte mindestens 2 Antworten eintragen.' : typ === 'skala' && optionen.some((o) => !o) ? 'Bitte beide Enden der Skala beschriften.' : '';
+    if (fehler) { ff.append(el('div', 'meldung fehler', fehler)); ff.style.marginBottom = '16px'; return; }
+    const b = $('anlegen'); b.disabled = true; b.textContent = 'Wird angelegt …';
+    try {
+      const r = await U.api.anlegen(frage, typ, optionen);
+      $('frage').value = ''; opt.textContent = ''; ['', '', ''].forEach((v) => neueOption(v)); nummern();
+      ff.append(el('div', 'meldung erfolg', 'Angelegt. Dein Code: ' + r.code)); ff.style.marginBottom = '16px';
+      await liste();
+    } catch (err) { ff.append(el('div', 'meldung fehler', err.message)); ff.style.marginBottom = '16px'; }
+    b.disabled = false; b.textContent = 'Umfrage anlegen';
+  });
+
+  /* Liste */
+  async function liste() {
+    const l = $('liste');
+    try {
+      const u = await U.api.meine();
+      l.textContent = '';
+      if (!u || !u.length) { l.append(el('p', 'hinweis', 'Noch keine Umfragen. Lege oben deine erste an.')); return; }
+      u.forEach((x) => {
+        const e = el('div', 'eintrag glas');
+        const meta = el('div', 'meta');
+        const st = el('span'); const p = el('span', 'punkt'); p.style.background = x.offen ? 'var(--ok)' : 'var(--warn)'; st.append(p, document.createTextNode(x.offen ? 'offen' : 'geschlossen'));
+        meta.append(el('span', '', U.TYPEN[x.typ] || x.typ), st, el('span', '', x.anzahl + (x.anzahl === 1 ? ' Antwort' : ' Antworten')), el('span', '', 'Runde ' + x.runde));
+        const k = el('div', 'knoepfe');
+        const live = el('a', 'knopf klein', 'Live zeigen'); live.href = U.liveUrl(x.code); live.target = '_blank'; live.rel = 'noopener';
+        const abst = el('a', 'knopf zweit klein', 'Abstimmseite'); abst.href = U.abstimmUrl(x.code); abst.target = '_blank'; abst.rel = 'noopener';
+        const emb = el('button', 'knopf zweit klein', 'Einbett-Code'); emb.type = 'button'; emb.onclick = () => einbett(x.code);
+        const auf = el('button', 'knopf zweit klein', x.offen ? 'Schließen' : 'Öffnen'); auf.type = 'button'; auf.onclick = () => aktion(x.code, x.offen ? 'schliessen' : 'oeffnen');
+        const neu = el('button', 'knopf zweit klein', 'Zurücksetzen'); neu.type = 'button'; neu.onclick = () => { if (confirm('Alle Antworten von ' + x.code + ' löschen und neu starten?')) aktion(x.code, 'neue_runde'); };
+        const del = el('button', 'knopf zweit klein', 'Löschen'); del.type = 'button'; del.onclick = () => { if (confirm('Umfrage ' + x.code + ' endgültig löschen?')) aktion(x.code, 'loeschen'); };
+        k.append(live, abst, emb, auf, neu, del);
+        e.append(el('div', 'code', x.code), el('div', 'f', x.frage), meta, k);
+        l.append(e);
+      });
+    } catch (err) { l.textContent = ''; l.append(el('div', 'meldung fehler', err.message)); }
+  }
+  async function aktion(code, a) { try { await U.api.steuern(code, a); } catch (err) { alert(err.message); } liste(); }
+
+  /* Einbett-Code */
+  let einbettCode = null;
+  function schnipsel() {
+    const ohne = document.querySelector('input[name=var]:checked').value === 'ohne';
+    const url = U.liveUrl(einbettCode, '&einbetten=1' + (ohne ? '&qr=0' : '') + ($('verd').checked ? '&verdeckt=1' : ''));
+    $('schnipsel').value =
+      '<iframe src="' + url + '" style="position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;background:transparent;z-index:5" allowtransparency="true" title="Live-Umfrage ' + einbettCode + '"></iframe>\n' +
+      '<script>addEventListener("message",function(e){if(e.data&&e.data.umfrageTaste){window.dispatchEvent(new KeyboardEvent("keydown",{key:e.data.umfrageTaste,code:e.data.code,bubbles:true}))}})<\/script>';
+  }
+  function einbett(code) { einbettCode = code; schnipsel(); $('einbettbox').classList.remove('versteckt'); $('einbettbox').scrollIntoView({ behavior: 'smooth' }); }
+  document.querySelectorAll('input[name=var]').forEach((r) => r.onchange = schnipsel); $('verd').onchange = schnipsel;
+  $('einbettzu').onclick = () => $('einbettbox').classList.add('versteckt');
+  async function kopiere(text, knopf) { try { await navigator.clipboard.writeText(text); const t = knopf.textContent; knopf.textContent = 'Kopiert ✓'; setTimeout(() => knopf.textContent = t, 1600); } catch (_) { alert('Kopieren nicht möglich. Bitte Text markieren und mit Strg+C kopieren.'); } }
+  $('kopieren').onclick = () => kopiere($('schnipsel').value, $('kopieren'));
+
+  /* Moderations-Schlüssel */
+  $('modanz').value = U.modSchluessel();
+  $('modkopie').onclick = () => kopiere($('modanz').value, $('modkopie'));
+  $('modsetzen').onclick = () => {
+    const m = $('modmeldung'); m.textContent = '';
+    if (U.setzeModSchluessel($('modneu').value)) { $('modanz').value = U.modSchluessel(); $('modneu').value = ''; m.append(el('div', 'meldung erfolg', 'Übernommen. Deine Umfragen werden geladen.')); liste(); }
+    else m.append(el('div', 'meldung fehler', 'Der Schlüssel ist zu kurz (mindestens 16 Zeichen).'));
+  };
+
+  if (!U.fehlerText) { liste(); setInterval(() => { if (!document.hidden) liste(); }, 15000); } else $('liste').textContent = '';
+})();
+</script>
+</body>
+</html>

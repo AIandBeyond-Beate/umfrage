@@ -1,0 +1,63 @@
+/* AI & Beyond Konferenzstil: Navy, Magenta-Polarlicht, Glas-Kacheln, Raleway (lokal, keine Google-Server) */
+@font-face { font-family: 'Raleway'; font-weight: 300; font-display: swap; src: url(lib/raleway-latin-300-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Raleway'; font-weight: 400; font-display: swap; src: url(lib/raleway-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Raleway'; font-weight: 600; font-display: swap; src: url(lib/raleway-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Raleway'; font-weight: 700; font-display: swap; src: url(lib/raleway-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Raleway'; font-weight: 800; font-display: swap; src: url(lib/raleway-latin-800-normal.woff2) format('woff2'); }
+
+:root {
+  --navy-900: #050D1C; --navy-800: #0B1530; --magenta-600: #A706AD; --magenta-400: #E14BE8; --logo-magenta: #FF00D4; --lilac-300: #D6B8F0;
+  --lav-50: #F4F1FA; --lav-150: #E2DCEE; --lav-200: #DCD5EA; --lav-300: #CFC6E3; --lav-400: #B9B2CC;
+  --glass: rgba(26,16,64,.60); --glass-border: rgba(255,255,255,.35); --glass-hell: rgba(255,255,255,.08);
+  --ok: #7FE3B0; --warn: #FFB4C8;
+  --font: 'Raleway','Helvetica Neue',Helvetica,Arial,sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+body {
+  font-family: var(--font); color: var(--lav-50); background-color: var(--navy-900);
+  background-image:
+    radial-gradient(60% 45% at 85% 0%, rgba(167,6,173,.55), transparent 70%),
+    radial-gradient(50% 40% at 0% 100%, rgba(94,23,235,.35), transparent 70%),
+    radial-gradient(40% 30% at 30% 20%, rgba(225,75,232,.12), transparent 70%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+em { font-style: normal; color: var(--magenta-400); }
+.versteckt { display: none !important; }
+
+/* Bausteine */
+.glas { background: var(--glass); border: 1.5px solid var(--glass-border); border-radius: 12px; backdrop-filter: blur(6px); }
+.knopf {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 22px;
+  border-radius: 10px; border: 1.5px solid var(--magenta-400); background: var(--magenta-600); color: #fff;
+  font-weight: 700; letter-spacing: .02em; text-decoration: none; transition: background .2s, box-shadow .2s, transform .1s;
+}
+.knopf:hover { background: #C21AC8; box-shadow: 0 0 22px rgba(225,75,232,.5); }
+.knopf:active { transform: scale(.98); }
+.knopf:disabled { opacity: .5; cursor: default; box-shadow: none; }
+.knopf.zweit { background: transparent; border-color: var(--glass-border); color: var(--lav-50); }
+.knopf.zweit:hover { border-color: var(--magenta-400); background: rgba(167,6,173,.2); }
+.knopf.klein { min-height: 36px; padding: 6px 14px; font-size: 14px; }
+.knopf:focus-visible, .wahl:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--lilac-300); outline-offset: 2px; }
+.feld {
+  width: 100%; min-height: 48px; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--glass-border);
+  background: rgba(5,13,28,.55); color: var(--lav-50); font-size: 17px;
+}
+.feld::placeholder { color: var(--lav-400); }
+.feld:focus { border-color: var(--magenta-400); outline: none; box-shadow: 0 0 0 3px rgba(225,75,232,.25); }
+.etikett { display: block; font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--lav-300); margin-bottom: 8px; }
+.hinweis { font-size: 14px; color: var(--lav-300); line-height: 1.5; }
+.meldung { padding: 12px 16px; border-radius: 10px; font-size: 15px; line-height: 1.45; }
+.meldung.fehler { background: rgba(255,80,120,.15); border: 1.5px solid rgba(255,140,170,.6); color: #FFD9E3; }
+.meldung.info { background: rgba(214,184,240,.12); border: 1.5px solid rgba(214,184,240,.45); color: var(--lav-150); }
+.meldung.erfolg { background: rgba(127,227,176,.12); border: 1.5px solid rgba(127,227,176,.5); color: #D8FBE8; }
+.logo { height: 34px; width: auto; display: block; }
+
+.badge { display: inline-block; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--glass-border); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+.badge.zu { border-color: var(--warn); color: var(--warn); }
+.badge.offen { border-color: var(--ok); color: var(--ok); }
+.badge.demo { border-color: var(--lilac-300); color: var(--lilac-300); }
