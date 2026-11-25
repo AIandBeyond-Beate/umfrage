@@ -7,9 +7,9 @@
    ===================================================================== */
 window.UMFRAGE_EINSTELLUNGEN = {
   // Beispiel: 'https://abcdefghijklmnop.supabase.co'
-  supabaseUrl: '',
+  supabaseUrl: 'https://frfcnkrzhtzattnoyiwp.supabase.co',
 
   // Der öffentliche Schlüssel: "anon public" oder "Publishable key" (beginnt mit eyJ... oder sb_publishable_...)
   // NIEMALS den "service_role"- oder "Secret key" hier eintragen!
-  supabaseSchluessel: ''
+  supabaseSchluessel: 'sb_publishable_mQ79EIea3FlGLLHovrIPig_n_NLflZL'
 };
